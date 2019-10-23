@@ -18,17 +18,16 @@ import org.jetbrains.kotlin.fir.types.FirResolvedTypeRef
 import org.jetbrains.kotlin.fir.types.FirTypeRef
 import org.jetbrains.kotlin.fir.types.coneTypeSafe
 import org.jetbrains.kotlin.fir.types.impl.FirErrorTypeRefImpl
-import org.jetbrains.kotlin.fir.visitors.CompositeTransformResult
-import org.jetbrains.kotlin.fir.visitors.compose
+
 import org.jetbrains.kotlin.name.ClassId
 
 class FirSupertypeResolverTransformer : FirAbstractTreeTransformer(phase = FirResolvePhase.SUPER_TYPES) {
     override lateinit var session: FirSession
     private lateinit var file: FirFile
 
-    override fun transformFile(file: FirFile, data: Nothing?): CompositeTransformResult<FirFile> {
+    override fun transformFile(file: FirFile, data: Nothing?): FirFile {
         initFromFile(file)
-        return transformDeclaration(file, data) as CompositeTransformResult<FirFile>
+        return transformDeclaration(file, data) as FirFile
     }
 
     fun initFromFile(file: FirFile) {
@@ -36,51 +35,51 @@ class FirSupertypeResolverTransformer : FirAbstractTreeTransformer(phase = FirRe
         this.file = file
     }
 
-    override fun transformRegularClass(regularClass: FirRegularClass, data: Nothing?): CompositeTransformResult<FirStatement> {
+    override fun transformRegularClass(regularClass: FirRegularClass, data: Nothing?): FirStatement {
         val transformedClass = resolveSupertypesOrExpansions(regularClass) as? FirRegularClass ?: regularClass
 
         // resolve supertypes for nested classes
-        return transformDeclaration(transformedClass, data) as CompositeTransformResult<FirStatement>
+        return transformDeclaration(transformedClass, data) as FirStatement
     }
 
-    override fun transformEnumEntry(enumEntry: FirEnumEntry, data: Nothing?): CompositeTransformResult<FirStatement> {
+    override fun transformEnumEntry(enumEntry: FirEnumEntry, data: Nothing?): FirStatement {
         return transformRegularClass(enumEntry, data)
     }
 
-    override fun transformTypeAlias(typeAlias: FirTypeAlias, data: Nothing?): CompositeTransformResult<FirDeclaration> {
+    override fun transformTypeAlias(typeAlias: FirTypeAlias, data: Nothing?): FirDeclaration {
         val result = resolveSupertypesOrExpansions(typeAlias)
-        return result.compose()
+        return result
     }
 
     // This and transformProperty functions are required to forbid supertype resolving for local classes
 //    override fun transformDeclarationWithBody(
 //        declarationWithBody: FirDeclarationWithBody,
 //        data: Nothing?
-//    ): CompositeTransformResult<FirDeclaration> {
-//        return declarationWithBody.compose()
+//    ): FirDeclaration {
+//        return declarationWithBody
 //    }
 
     override fun transformAnonymousInitializer(
         anonymousInitializer: FirAnonymousInitializer,
         data: Nothing?
-    ): CompositeTransformResult<FirDeclaration> {
-        return anonymousInitializer.compose()
+    ): FirDeclaration {
+        return anonymousInitializer
     }
 
-    override fun transformConstructor(constructor: FirConstructor, data: Nothing?): CompositeTransformResult<FirDeclaration> {
-        return constructor.compose()
+    override fun transformConstructor(constructor: FirConstructor, data: Nothing?): FirDeclaration {
+        return constructor
     }
 
-    override fun transformSimpleFunction(simpleFunction: FirSimpleFunction, data: Nothing?): CompositeTransformResult<FirDeclaration> {
-        return simpleFunction.compose()
+    override fun transformSimpleFunction(simpleFunction: FirSimpleFunction, data: Nothing?): FirDeclaration {
+        return simpleFunction
     }
 
-    override fun transformProperty(property: FirProperty, data: Nothing?): CompositeTransformResult<FirDeclaration> {
-        return property.compose()
+    override fun transformProperty(property: FirProperty, data: Nothing?): FirDeclaration {
+        return property
     }
 
-    override fun <F : FirFunction<F>> transformFunction(function: FirFunction<F>, data: Nothing?): CompositeTransformResult<FirStatement> {
-        return function.compose()
+    override fun <F : FirFunction<F>> transformFunction(function: FirFunction<F>, data: Nothing?): FirStatement {
+        return function
     }
 
     private fun resolveSupertypesOrExpansions(classLikeDeclaration: FirClassLikeDeclaration<*>): FirDeclaration {
@@ -91,7 +90,7 @@ class FirSupertypeResolverTransformer : FirAbstractTreeTransformer(phase = FirRe
         val classId = classLikeDeclaration.symbol.classId
 
         val visitor = ResolveSuperTypesTask(session, classId, file, classLikeDeclaration)
-        file.accept(visitor, null).single
+        file.accept(visitor, null)
 
         return visitor.resultingClass
     }
@@ -110,13 +109,13 @@ class FirSupertypeResolverTransformer : FirAbstractTreeTransformer(phase = FirRe
             towerScope.addImportingScopes(file, session, scopeSession)
         }
 
-        override fun transformEnumEntry(enumEntry: FirEnumEntry, data: Nothing?): CompositeTransformResult<FirStatement> {
+        override fun transformEnumEntry(enumEntry: FirEnumEntry, data: Nothing?): FirStatement {
             return transformRegularClass(enumEntry, data)
         }
 
-        override fun transformRegularClass(regularClass: FirRegularClass, data: Nothing?): CompositeTransformResult<FirStatement> {
+        override fun transformRegularClass(regularClass: FirRegularClass, data: Nothing?): FirStatement {
             val classId = regularClass.classId
-            if (!isOuterClass(classId, requestedClassId)) return regularClass.compose()
+            if (!isOuterClass(classId, requestedClassId)) return regularClass
             val transformedClass = withScopeCleanup {
                 if (regularClass.areSupertypesComputed() || regularClass.areSupertypesComputing()) return@withScopeCleanup regularClass
 
@@ -124,7 +123,7 @@ class FirSupertypeResolverTransformer : FirAbstractTreeTransformer(phase = FirRe
 
                 val transformer = FirSpecificTypeResolverTransformer(towerScope, FirPosition.SUPER_TYPE_OR_EXPANSION, session)
                 val resolvedTypesRefs = regularClass.superTypeRefs.map {
-                    transformer.transformTypeRef(it, data).single
+                    transformer.transformTypeRef(it, data)
                 }
 
                 val resultingTypeRefs = resolveLoops(regularClass, classId, resolvedTypesRefs)
@@ -134,7 +133,7 @@ class FirSupertypeResolverTransformer : FirAbstractTreeTransformer(phase = FirRe
 
             if (regularClass.matchesRequestedDeclaration()) {
                 resultingClass = transformedClass
-                return transformedClass.compose()
+                return transformedClass
             }
 
             return resolveNestedClassesSupertypes(transformedClass, data)
@@ -145,22 +144,22 @@ class FirSupertypeResolverTransformer : FirAbstractTreeTransformer(phase = FirRe
             return symbol.classId == requestedClassId
         }
 
-        override fun transformTypeAlias(typeAlias: FirTypeAlias, data: Nothing?): CompositeTransformResult<FirDeclaration> {
+        override fun transformTypeAlias(typeAlias: FirTypeAlias, data: Nothing?): FirDeclaration {
             val classId = typeAlias.symbol.classId
             // nested type aliases
-            if (typeAlias.areSupertypesComputed() || !typeAlias.matchesRequestedDeclaration()) return typeAlias.compose()
+            if (typeAlias.areSupertypesComputed() || !typeAlias.matchesRequestedDeclaration()) return typeAlias
 
             return withScopeCleanup {
                 typeAlias.addTypeParametersScope()
 
                 val transformer = FirSpecificTypeResolverTransformer(towerScope, FirPosition.SUPER_TYPE_OR_EXPANSION, session)
-                val resolvedTypesRef = transformer.transformTypeRef(typeAlias.expandedTypeRef, data).single
+                val resolvedTypesRef = transformer.transformTypeRef(typeAlias.expandedTypeRef, data)
                 val resultingTypeRef = resolveLoops(typeAlias, classId, listOf(resolvedTypesRef)).firstOrNull()
 
                 typeAlias.replaceExpandedTypeRef(resultingTypeRef ?: resolvedTypesRef)
                 resultingClass = typeAlias
                 typeAlias
-            }.compose()
+            }
         }
 
         private fun resolveLoops(
@@ -219,7 +218,7 @@ class FirSupertypeResolverTransformer : FirAbstractTreeTransformer(phase = FirRe
         private fun resolveNestedClassesSupertypes(
             regularClass: FirRegularClass,
             data: Nothing?
-        ): CompositeTransformResult<FirStatement> {
+        ): FirStatement {
             return withScopeCleanup {
                 // ? Is it Ok to use original file session here ?
                 val firProvider = FirProvider.getInstance(session)

@@ -22,8 +22,6 @@ import org.jetbrains.kotlin.fir.types.*
 import org.jetbrains.kotlin.fir.types.impl.ConeTypeParameterTypeImpl
 import org.jetbrains.kotlin.fir.types.impl.FirResolvedTypeRefImpl
 import org.jetbrains.kotlin.fir.types.impl.FirTypeProjectionWithVarianceImpl
-import org.jetbrains.kotlin.fir.visitors.CompositeTransformResult
-import org.jetbrains.kotlin.fir.visitors.compose
 import org.jetbrains.kotlin.types.Variance
 
 class FirCallCompletionResultsWriterTransformer(
@@ -35,9 +33,9 @@ class FirCallCompletionResultsWriterTransformer(
     override fun transformQualifiedAccessExpression(
         qualifiedAccessExpression: FirQualifiedAccessExpression,
         data: Nothing?
-    ): CompositeTransformResult<FirStatement> {
+    ): FirStatement {
         val calleeReference =
-            qualifiedAccessExpression.calleeReference as? FirNamedReferenceWithCandidate ?: return qualifiedAccessExpression.compose()
+            qualifiedAccessExpression.calleeReference as? FirNamedReferenceWithCandidate ?: return qualifiedAccessExpression
         calleeReference.candidate.substitutor
 
         val typeRef = typeCalculator.tryCalculateReturnType(calleeReference.candidateSymbol.phasedFir as FirTypedDeclaration)
@@ -55,15 +53,15 @@ class FirCallCompletionResultsWriterTransformer(
                 calleeReference.name,
                 calleeReference.candidateSymbol
             )
-        ).compose()
+        )
     }
 
     override fun transformVariableAssignment(
         variableAssignment: FirVariableAssignment,
         data: Nothing?
-    ): CompositeTransformResult<FirStatement> {
+    ): FirStatement {
         val calleeReference = variableAssignment.calleeReference as? FirNamedReferenceWithCandidate
-            ?: return variableAssignment.compose()
+            ?: return variableAssignment
         return variableAssignment.transformCalleeReference(
             StoreCalleeReference,
             FirResolvedCallableReferenceImpl(
@@ -71,11 +69,11 @@ class FirCallCompletionResultsWriterTransformer(
                 calleeReference.name,
                 calleeReference.candidateSymbol
             )
-        ).compose()
+        )
     }
 
-    override fun transformFunctionCall(functionCall: FirFunctionCall, data: Nothing?): CompositeTransformResult<FirStatement> {
-        val calleeReference = functionCall.calleeReference as? FirNamedReferenceWithCandidate ?: return functionCall.compose()
+    override fun transformFunctionCall(functionCall: FirFunctionCall, data: Nothing?): FirStatement {
+        val calleeReference = functionCall.calleeReference as? FirNamedReferenceWithCandidate ?: return functionCall
         val functionCall = functionCall.transformArguments(this, data) as FirFunctionCall
 
         val subCandidate = calleeReference.candidate
@@ -127,14 +125,14 @@ class FirCallCompletionResultsWriterTransformer(
             ),
             dispatchReceiver = subCandidate.dispatchReceiverExpression(),
             extensionReceiver = subCandidate.extensionReceiverExpression()
-        ).compose()
+        )
 
     }
 
     override fun transformAnonymousFunction(
         anonymousFunction: FirAnonymousFunction,
         data: Nothing?
-    ): CompositeTransformResult<FirStatement> {
+    ): FirStatement {
         val initialType = anonymousFunction.returnTypeRef.coneTypeSafe<ConeKotlinType>()
         if (initialType != null) {
             val finalType = finalSubstitutor.substituteOrNull(initialType)
@@ -148,7 +146,7 @@ class FirCallCompletionResultsWriterTransformer(
         return transformElement(anonymousFunction, data)
     }
 
-    override fun transformBlock(block: FirBlock, data: Nothing?): CompositeTransformResult<FirStatement> {
+    override fun transformBlock(block: FirBlock, data: Nothing?): FirStatement {
         val initialType = block.resultType.coneTypeSafe<ConeKotlinType>()
         if (initialType != null) {
             val finalType = finalSubstitutor.substituteOrNull(initialType)
@@ -158,12 +156,12 @@ class FirCallCompletionResultsWriterTransformer(
         return transformElement(block, data)
     }
 
-    override fun transformWhenExpression(whenExpression: FirWhenExpression, data: Nothing?): CompositeTransformResult<FirStatement> {
-        val calleeReference = whenExpression.calleeReference as? FirNamedReferenceWithCandidate ?: return whenExpression.compose()
+    override fun transformWhenExpression(whenExpression: FirWhenExpression, data: Nothing?): FirStatement {
+        val calleeReference = whenExpression.calleeReference as? FirNamedReferenceWithCandidate ?: return whenExpression
 
         val whenExpression = whenExpression.transformChildren(this, data) as FirWhenExpression
 
-        val declaration = whenExpression.candidate()?.symbol?.fir as? FirMemberFunction<*> ?: return whenExpression.compose()
+        val declaration = whenExpression.candidate()?.symbol?.fir as? FirMemberFunction<*> ?: return whenExpression
 
         val subCandidate = calleeReference.candidate
 
@@ -181,15 +179,15 @@ class FirCallCompletionResultsWriterTransformer(
                 calleeReference.name,
                 calleeReference.candidateSymbol
             )
-        ).compose()
+        )
     }
 
-    override fun transformTryExpression(tryExpression: FirTryExpression, data: Nothing?): CompositeTransformResult<FirStatement> {
-        val calleeReference = tryExpression.calleeReference as? FirNamedReferenceWithCandidate ?: return tryExpression.compose()
+    override fun transformTryExpression(tryExpression: FirTryExpression, data: Nothing?): FirStatement {
+        val calleeReference = tryExpression.calleeReference as? FirNamedReferenceWithCandidate ?: return tryExpression
 
         val tryExpression = tryExpression.transformChildren(this, data) as FirTryExpression
 
-        val declaration = tryExpression.candidate()?.symbol?.fir as? FirMemberFunction<*> ?: return tryExpression.compose()
+        val declaration = tryExpression.candidate()?.symbol?.fir as? FirMemberFunction<*> ?: return tryExpression
 
         val subCandidate = calleeReference.candidate
 
@@ -207,7 +205,7 @@ class FirCallCompletionResultsWriterTransformer(
                 calleeReference.name,
                 calleeReference.candidateSymbol
             )
-        ).compose()
+        )
 
     }
 }

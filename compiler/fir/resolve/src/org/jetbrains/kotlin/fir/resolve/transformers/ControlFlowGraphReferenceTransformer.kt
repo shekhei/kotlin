@@ -6,37 +6,34 @@
 package org.jetbrains.kotlin.fir.resolve.transformers
 
 import org.jetbrains.kotlin.fir.FirElement
-import org.jetbrains.kotlin.fir.declarations.FirDeclaration
 import org.jetbrains.kotlin.fir.declarations.FirFunction
 import org.jetbrains.kotlin.fir.expressions.FirStatement
 import org.jetbrains.kotlin.fir.references.FirControlFlowGraphReference
 import org.jetbrains.kotlin.fir.references.impl.FirEmptyControlFlowGraphReference
 import org.jetbrains.kotlin.fir.resolve.dfa.FirControlFlowGraphReferenceImpl
 import org.jetbrains.kotlin.fir.resolve.dfa.cfg.ControlFlowGraph
-import org.jetbrains.kotlin.fir.visitors.CompositeTransformResult
 import org.jetbrains.kotlin.fir.visitors.FirTransformer
-import org.jetbrains.kotlin.fir.visitors.compose
 
 object ControlFlowGraphReferenceTransformer : FirTransformer<ControlFlowGraph>() {
-    override fun <E : FirElement> transformElement(element: E, data: ControlFlowGraph): CompositeTransformResult<E> {
-        return element.compose()
+    override fun <E : FirElement> transformElement(element: E, data: ControlFlowGraph): E {
+        return element
     }
 
     override fun <F : FirFunction<F>> transformFunction(
         function: FirFunction<F>,
         data: ControlFlowGraph
-    ): CompositeTransformResult<FirStatement> {
-        return (function.transformChildren(this, data) as FirFunction<*>).compose()
+    ): FirStatement {
+        return (function.transformChildren(this, data) as FirFunction<*>)
     }
 
     override fun transformControlFlowGraphReference(
         controlFlowGraphReference: FirControlFlowGraphReference,
         data: ControlFlowGraph
-    ): CompositeTransformResult<FirControlFlowGraphReference> {
+    ): FirControlFlowGraphReference {
         return if (controlFlowGraphReference is FirEmptyControlFlowGraphReference) {
-            FirControlFlowGraphReferenceImpl(data).compose()
+            FirControlFlowGraphReferenceImpl(data)
         } else {
-            controlFlowGraphReference.compose()
+            controlFlowGraphReference
         }
     }
 }

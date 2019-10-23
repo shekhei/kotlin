@@ -12,14 +12,13 @@ import org.jetbrains.kotlin.fir.declarations.FirImport
 import org.jetbrains.kotlin.fir.declarations.FirResolvePhase
 import org.jetbrains.kotlin.fir.declarations.impl.FirResolvedImportImpl
 import org.jetbrains.kotlin.fir.resolve.FirSymbolProvider
-import org.jetbrains.kotlin.fir.visitors.CompositeTransformResult
-import org.jetbrains.kotlin.fir.visitors.compose
+
 import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.FqName
 
 class FirImportResolveTransformer() : FirAbstractTreeTransformer(phase = FirResolvePhase.IMPORTS) {
-    override fun <E : FirElement> transformElement(element: E, data: Nothing?): CompositeTransformResult<E> {
-        return element.compose()
+    override fun <E : FirElement> transformElement(element: E, data: Nothing?): E {
+        return element
     }
 
     private lateinit var symbolProvider: FirSymbolProvider
@@ -32,14 +31,14 @@ class FirImportResolveTransformer() : FirAbstractTreeTransformer(phase = FirReso
         symbolProvider = FirSymbolProvider.getInstance(session)
     }
 
-    override fun transformFile(file: FirFile, data: Nothing?): CompositeTransformResult<FirFile> {
+    override fun transformFile(file: FirFile, data: Nothing?): FirFile {
         session = file.session
         symbolProvider = FirSymbolProvider.getInstance(file.session)
-        return file.also { it.transformChildren(this, null) }.compose()
+        return file.also { it.transformChildren(this, null) }
     }
 
-    override fun transformImport(import: FirImport, data: Nothing?): CompositeTransformResult<FirImport> {
-        val fqName = import.importedFqName?.takeUnless { it.isRoot } ?: return import.compose()
+    override fun transformImport(import: FirImport, data: Nothing?): FirImport {
+        val fqName = import.importedFqName?.takeUnless { it.isRoot } ?: return import
 
         if (import.isAllUnder) {
             return transformImportForFqName(fqName, import)
@@ -49,9 +48,9 @@ class FirImportResolveTransformer() : FirAbstractTreeTransformer(phase = FirReso
         return transformImportForFqName(parentFqName, import)
     }
 
-    private fun transformImportForFqName(fqName: FqName, delegate: FirImport): CompositeTransformResult<FirImport> {
-        val (packageFqName, relativeClassFqName) = resolveToPackageOrClass(symbolProvider, fqName) ?: return delegate.compose()
-        return FirResolvedImportImpl(delegate, packageFqName, relativeClassFqName).compose()
+    private fun transformImportForFqName(fqName: FqName, delegate: FirImport): FirImport {
+        val (packageFqName, relativeClassFqName) = resolveToPackageOrClass(symbolProvider, fqName) ?: return delegate
+        return FirResolvedImportImpl(delegate, packageFqName, relativeClassFqName)
     }
 
 
