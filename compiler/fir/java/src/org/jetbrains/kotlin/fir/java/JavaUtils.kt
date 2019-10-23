@@ -19,9 +19,8 @@ import org.jetbrains.kotlin.fir.impl.FirAbstractAnnotatedElement
 import org.jetbrains.kotlin.fir.java.declarations.FirJavaValueParameter
 import org.jetbrains.kotlin.fir.java.enhancement.readOnlyToMutable
 import org.jetbrains.kotlin.fir.java.types.FirJavaTypeRef
-import org.jetbrains.kotlin.fir.references.FirErrorNamedReference
 import org.jetbrains.kotlin.fir.references.impl.FirErrorNamedReferenceImpl
-import org.jetbrains.kotlin.fir.references.impl.FirResolvedCallableReferenceImpl
+import org.jetbrains.kotlin.fir.references.impl.FirResolvedNamedReferenceImpl
 import org.jetbrains.kotlin.fir.resolve.constructClassType
 import org.jetbrains.kotlin.fir.resolve.firSymbolProvider
 import org.jetbrains.kotlin.fir.resolve.getClassDeclaredCallableSymbols
@@ -252,7 +251,7 @@ private fun JavaAnnotationArgument.toFirExpression(
                         classId, entryName
                     ).firstOrNull()
                     callableSymbol?.let {
-                        FirResolvedCallableReferenceImpl(null, entryName, it)
+                        FirResolvedNamedReferenceImpl(null, entryName, it)
                     }
                 } else {
                     null
