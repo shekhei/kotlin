@@ -10,7 +10,19 @@ configure<PublishingExtension> {
     }
 
     repositories {
-        maven(findProperty("deployRepoUrl") ?: "${rootProject.buildDir}/repo")
+        maven {
+            url = uri(findProperty("deployRepoUrl") ?: findProperty("deploy-url") ?: "${rootProject.buildDir}/repo")
+            authentication {
+                val mavenUser = findProperty("kotlin.bintray.user") as String?
+                val mavenPass = findProperty("kotlin.bintray.password") as String?
+                if (url.scheme != "file" && mavenUser != null && mavenPass != null) {
+                    credentials {
+                        username = mavenUser
+                        password = mavenPass
+                    }
+                }
+            }
+        }
     }
 }
 
