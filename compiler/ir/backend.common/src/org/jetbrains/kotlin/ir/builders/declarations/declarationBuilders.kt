@@ -45,7 +45,8 @@ fun IrFieldBuilder.buildField(): IrField {
     return IrFieldImpl(
         startOffset, endOffset, origin,
         IrFieldSymbolImpl(wrappedDescriptor),
-        name, type, visibility, isFinal, isExternal, isStatic
+        name, type, visibility, isFinal, isExternal, isStatic,
+        origin == IrDeclarationOrigin.FAKE_OVERRIDE
     ).also {
         wrappedDescriptor.bind(it)
     }
