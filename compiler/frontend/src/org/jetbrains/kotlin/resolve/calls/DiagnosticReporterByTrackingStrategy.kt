@@ -329,8 +329,8 @@ class DiagnosticReporterByTrackingStrategy(
                     trace.reportDiagnosticOnce(
                         TYPE_MISMATCH.on(
                             expression,
-                            constraintError.upperKotlinType.unCapture(),
-                            constraintError.lowerKotlinType.unCapture()
+                            constraintError.upperKotlinType,
+                            constraintError.lowerKotlinType
                         )
                     )
                 }
