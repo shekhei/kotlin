@@ -136,7 +136,8 @@ private class InterfaceDelegationLowering(val context: JvmBackendContext) : IrEl
                         isLateinit = inheritedProperty.isLateinit,
                         isDelegated = inheritedProperty.isDelegated,
                         isExpect = inheritedProperty.isExpect,
-                        isExternal = false
+                        isExternal = false,
+                        isFakeOverride = false
                     ).apply {
                         propertyDescriptor.bind(this)
                         parent = irClass
